@@ -25,6 +25,7 @@ object Build extends sbt.Build {
   val gearpumpVersion = "0.4.1-SNAPSHOT"
   val hadoopVersion = "2.6.0"
   val kafkaVersion = "0.8.2.1"
+  val sprayVersion = "1.3.2"
   val parquetVersion = "1.7.0"
   
   val scalaVersionMajor = "scala-2.11"
@@ -113,7 +114,7 @@ object Build extends sbt.Build {
 
   val myAssemblySettings = assemblySettings ++ Seq(
     test in assembly := {},
-    assemblyOption in assembly ~= { _.copy(includeScala = false) }
+    assemblyOption in assembly ~= { _.copy(includeScala = true) }
   )
 
   lazy val root = Project(
@@ -142,14 +143,16 @@ object Build extends sbt.Build {
             oldStrategy(x)
         },
         libraryDependencies ++= Seq(
+          "io.spray" %%  "spray-can" % sprayVersion,
           "com.github.intel-hadoop" %% "gearpump-core" % gearpumpVersion % "provided"
             exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
           "com.github.intel-hadoop" %% "gearpump-daemon" % gearpumpVersion % "provided"
             exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
           "com.github.intel-hadoop" %% "gearpump-streaming" % gearpumpVersion % "provided"
             exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
-          "com.github.intel-hadoop" %% "gearpump-external-kafka" % gearpumpVersion % "provided"
+          "com.github.intel-hadoop" %% "gearpump-external-kafka" % gearpumpVersion
             exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
+          "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2",
           "com.julianpeeters" % "avro-scala-macro-annotations_2.11" % "0.9.0",
           "org.apache.parquet" % "parquet-avro" % parquetVersion
             exclude("org.apache.htrace", "htrace-core"),
@@ -184,7 +187,7 @@ object Build extends sbt.Build {
           "org.scalacheck" %% "scalacheck" % scalaCheckVersion % "test",
           "org.mockito" % "mockito-core" % mockitoVersion % "test"
         ) ++ hadoopDependency,
-        mainClass in (Compile, packageBin) := Some("org.apache.gearpump.examples.kafka_hdfs_pipeline.KafkaHdfsPipeLine"),
+        mainClass in (Compile, packageBin) := Some("org.apache.gearpump.examples.kafka_hdfs_pipeline.PipeLine"),
         target in assembly := baseDirectory.value.getParentFile / "target" / scalaVersionMajor
       )
   )
@@ -201,6 +204,7 @@ object Build extends sbt.Build {
             oldStrategy(x)
         },
         libraryDependencies ++= Seq(
+          "io.spray" %%  "spray-can" % sprayVersion,
           "com.github.intel-hadoop" %% "gearpump-core" % gearpumpVersion % "provided"
             exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
           "com.github.intel-hadoop" %% "gearpump-daemon" % gearpumpVersion % "provided"
@@ -209,9 +213,10 @@ object Build extends sbt.Build {
             exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
           "com.github.intel-hadoop" %% "gearpump-experiments-dsl" % gearpumpVersion % "provided"
             exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
-          "com.github.intel-hadoop" %% "gearpump-external-kafka" % gearpumpVersion % "provided"
+          "com.github.intel-hadoop" %% "gearpump-external-kafka" % gearpumpVersion
             exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
-          "com.github.intel-hadoop" %% "gearpump-external-hbase" % gearpumpVersion % "provided"
+          "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2",
+          "com.github.intel-hadoop" %% "gearpump-external-hbase" % gearpumpVersion
             exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
           "com.julianpeeters" % "avro-scala-macro-annotations_2.11" % "0.9.0",
           "org.apache.hadoop" % "hadoop-hdfs" % clouderaVersion
@@ -245,7 +250,7 @@ object Build extends sbt.Build {
           "org.scalacheck" %% "scalacheck" % scalaCheckVersion % "test",
           "org.mockito" % "mockito-core" % mockitoVersion % "test"
         ) ++ hadoopDependency,
-        mainClass in (Compile, packageBin) := Some("org.apache.gearpump.examples.kafka_hbase_pipeline.KafkaHbasePipeLine"),
+        mainClass in (Compile, packageBin) := Some("org.apache.gearpump.examples.kafka_hbase_pipeline.PipeLine"),
         target in assembly := baseDirectory.value.getParentFile / "target" / scalaVersionMajor
       )
   )
