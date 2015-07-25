@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.gearpump.examples.kafka_hdfs_pipeline
 
 import com.julianpeeters.avro.annotations._
@@ -42,7 +41,7 @@ case class SpaceShuttleMessage(id: String, on: String, body: String)
 @AvroRecord
 case class SpaceShuttleRecord(var timestamp: Double, var vectorClass: Double, var count: Double)
 
-object KafkaHdfsPipeLine extends App with ArgumentsParser {
+object PipeLine extends App with ArgumentsParser {
   private val LOG: Logger = LogUtil.getLogger(getClass)
 
   override val options: Array[(String, CLIOption[Any])] = Array(
