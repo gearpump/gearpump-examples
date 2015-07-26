@@ -62,14 +62,14 @@ object PipeLine extends App with ArgumentsParser {
         |  }
         |}
       """.stripMargin
-    val pipelineConfig = KafkaHbasePipeLineConfig(ConfigFactory.parseFile(new java.io.File(pipelineString)))
+    val pipelineConfig = PipeLineConfig(ConfigFactory.parseFile(new java.io.File(pipelineString)))
     val processors = config.getInt("processors")
     val persistors = config.getInt("persistors")
     val topic = config.getString("topic")
     val brokers = config.getString("brokers")
     val zookeepers = config.getString("zookeepers")
 
-    val appConfig = UserConfig.empty.withValue[KafkaHbasePipeLineConfig](PIPELINE, pipelineConfig)
+    val appConfig = UserConfig.empty.withValue[PipeLineConfig](PIPELINE, pipelineConfig)
 
     val offsetStorageFactory = new KafkaStorageFactory(zookeepers, brokers)
     val source = new KafkaSource(topic, zookeepers, offsetStorageFactory)

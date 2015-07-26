@@ -89,19 +89,19 @@ class SpaceShuttleProducer(taskContext : TaskContext, conf: UserConfig)
   }
 }
 
-class KafkaHdfsPipeLineSpec extends PropSpec with PropertyChecks with Matchers with BeforeAndAfterAll {
+class PipeLineSpec extends PropSpec with PropertyChecks with Matchers with BeforeAndAfterAll {
   val LOG: Logger = LogUtil.getLogger(getClass)
   implicit var system: ActorSystem = null
 
   override def beforeAll(): Unit = {
-    system = ActorSystem("KafkaHdfsPipeLineSpec")
+    system = ActorSystem("PipeLineSpec")
   }
 
   override def afterAll(): Unit = {
     system.shutdown()
   }
 
-  property("KafkaHdfsPipeLineSpec should be able to create a DataSource") {
+  property("PipeLineSpec should be able to create a DataSource") {
     Option(new SpaceShuttleReplayableSource) match {
       case Some(replayableSource) =>
       case None =>

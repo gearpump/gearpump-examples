@@ -23,6 +23,7 @@ import org.apache.gearpump._
 import org.apache.gearpump.cluster.UserConfig
 import org.apache.gearpump.examples.kafka_hbase_pipeline.Messages._
 import org.apache.gearpump.external.hbase.HBaseSink
+import org.apache.gearpump.external.hbase.HBaseSink._
 import org.apache.gearpump.streaming.task.{StartTime, Task, TaskContext}
 import org.apache.gearpump.util.LogUtil
 import org.slf4j.Logger
@@ -34,7 +35,7 @@ import scala.util.Try
 // NOTE: Do not split up into separate files
 // See http://stackoverflow.com/questions/28630780/upickle-and-scalajs-sealed-trait-serialisation
 object Messages {
-  val PIPELINE = "KafkaHbasePipeLine"
+  val PIPELINE = "PipeLine"
   val DEFAULT_INTERVAL = 2
   val CPU = "CPU"
   val CPU_INTERVAL = "pipeline.cpu.interval"
@@ -48,7 +49,7 @@ object Messages {
   case class Envelope(id: String, on: String, body: String)
 }
 
-case class KafkaHbasePipeLineConfig(config: Config) extends java.io.Serializable
+case class PipeLineConfig(config: Config) extends java.io.Serializable
 
 class TAverage(interval: Int) extends java.io.Serializable {
   val LOG: Logger = LogUtil.getLogger(getClass)
@@ -90,7 +91,7 @@ object TAverage {
 abstract class MetricProcessor(taskContext: TaskContext, conf: UserConfig)
   extends Task(taskContext, conf) {
 
-  val pipelineConfig = conf.getValue[KafkaHbasePipeLineConfig](PIPELINE)
+  val pipelineConfig = conf.getValue[PipeLineConfig](PIPELINE)
   val timeInterval: Int
   val average: TAverage = TAverage(timeInterval)
 
@@ -161,11 +162,16 @@ class CpuPersistor(taskContext : TaskContext, conf: UserConfig)
   extends Task(taskContext, conf) {
 
   def userConf = conf
-  val pipeLineConfig: KafkaHbasePipeLineConfig = userConf.getValue[KafkaHbasePipeLineConfig](PIPELINE).get
+  val pipeLineConfig: PipeLineConfig = userConf.getValue[PipeLineConfig](PIPELINE).get
   val hbaseTable = pipeLineConfig.config.getString("hbase.table.name")
   val hbaseFamily = pipeLineConfig.config.getString("hbase.table.column.family")
   val hbaseColumn = pipeLineConfig.config.getString("hbase.table.column.name")
-  lazy val hbase = HBaseSink(hbaseTable)
+  lazy val hbase = userConf.getValue[HBaseSink](HBASESINK) match {
+    case Some(hbaseSink) =>
+      hbaseSink
+    case None =>
+      HBaseSink(hbaseTable)
+  }
 
   override def onStart(newStartTime: StartTime): Unit = {
     LOG.info("starting")
@@ -186,12 +192,16 @@ class MemoryPersistor(taskContext : TaskContext, conf: UserConfig)
   extends Task(taskContext, conf) {
 
   def userConf = conf
-  val pipeLineConfig: KafkaHbasePipeLineConfig = userConf.getValue[KafkaHbasePipeLineConfig](PIPELINE).get
+  val pipeLineConfig: PipeLineConfig = userConf.getValue[PipeLineConfig](PIPELINE).get
   val hbaseTable = pipeLineConfig.config.getString("hbase.table.name")
   val hbaseFamily = pipeLineConfig.config.getString("hbase.table.column.family")
   val hbaseColumn = pipeLineConfig.config.getString("hbase.table.column.name")
-  lazy val hbase = HBaseSink(hbaseTable)
-
+  lazy val hbase = userConf.getValue[HBaseSink](HBASESINK) match {
+    case Some(hbaseSink) =>
+      hbaseSink
+    case None =>
+      HBaseSink(hbaseTable)
+  }
   override def onStart(newStartTime: StartTime): Unit = {
     LOG.info("starting")
   }
