@@ -20,7 +20,7 @@ package org.apache.gearpump.examples.kafka_hdfs_pipeline
 import org.apache.gearpump.Message
 import org.apache.gearpump.cluster.UserConfig
 import org.apache.gearpump.examples.kafka_hdfs_pipeline.ParquetWriterTask._
-import org.apache.gearpump.streaming.task.{Task, TaskContext}
+import org.apache.gearpump.streaming.task.{StartTime, Task, TaskContext}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.parquet.avro.AvroParquetWriter
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -28,24 +28,34 @@ import scala.util.{Failure, Success, Try}
 
 class ParquetWriterTask(taskContext : TaskContext, config: UserConfig) extends Task(taskContext, config) {
   val outputFileName = taskContext.appName + ".parquet"
-  val absolutePath = Option(config.getString(PARQUET_OUTPUT_DIRECTORY).get + "/" + outputFileName).map(name => {
-    val file = new java.io.File(name.stripPrefix("file://"))
-    if(file.exists) {
-      LOG.info("deleting $name")
-      file.delete match {
-        case true =>
-        case false =>
-          LOG.info("could not delete $name")
-      }
-    }
-    name
-  }).get
+  val absolutePath = Option(config.getString(PARQUET_OUTPUT_DIRECTORY).get + "/" + outputFileName).map(deleteFile(_)).get
   val outputPath = new Path(absolutePath)
   val parquetWriter = new AvroParquetWriter[SpaceShuttleRecord](outputPath, SpaceShuttleRecord.SCHEMA$)
   def getYarnConf = new YarnConfiguration
   def getFs = FileSystem.get(getYarnConf)
   def getHdfs = new Path(getFs.getHomeDirectory, "/user/gearpump")
   var count = 0
+
+  private def deleteFile(fileName: String): String = {
+    val file = new java.io.File(fileName.stripPrefix("file://"))
+    file.exists match {
+      case true =>
+        LOG.info(s"deleting $fileName")
+        file.delete match {
+          case true =>
+          case false =>
+            LOG.info("could not delete $name")
+        }
+      case false =>
+        LOG.info(s"$fileName does not exist")
+    }
+    fileName
+  }
+
+  override def onStart(startTime: StartTime): Unit = {
+    LOG.info("ParquetWriter.onStart")
+    deleteFile(config.getString(PARQUET_OUTPUT_DIRECTORY).get + "/" + "." + outputFileName + ".crc")
+  }
 
   override def onNext(msg: Message): Unit = {
     Try({
