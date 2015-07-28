@@ -18,6 +18,6 @@
 package org.apache.gearpump.examples.kafka_hbase_pipeline
 
 //Todo
-class KafkaHbasePipeLineSpec {
+class PipeLineSpec {
 
 }

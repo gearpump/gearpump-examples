@@ -1,3 +1,0 @@
-#!/bin/bash
-./createtopic $1
-./producetotopic $1

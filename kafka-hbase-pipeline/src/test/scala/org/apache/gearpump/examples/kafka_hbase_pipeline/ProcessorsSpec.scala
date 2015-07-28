@@ -20,16 +20,14 @@ package org.apache.gearpump.examples.kafka_hbase_pipeline
 import com.typesafe.config.ConfigFactory
 import org.apache.gearpump.Message
 import org.apache.gearpump.cluster.UserConfig
-import Messages.{Body, Envelope, Datum}
-import org.apache.gearpump.external.hbase.{HBaseRepo, HBaseSinkInterface, HBaseSink}
-import org.apache.gearpump.external.hbase.HBaseSink._
-import Messages.{Body, Datum, Envelope, _}
+import org.apache.gearpump.examples.kafka_hbase_pipeline.Messages.{Body, Datum, Envelope, _}
+import org.apache.gearpump.external.hbase.HBaseSink
 import org.apache.gearpump.streaming.MockUtil
 import org.apache.gearpump.streaming.task.StartTime
 import org.apache.gearpump.util.LogUtil
-import org.apache.hadoop.conf.Configuration
 import org.mockito.Mockito
 import org.mockito.Mockito._
+import org.mockito.mock.SerializableMode
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{BeforeAndAfter, Matchers, PropSpec}
 import org.slf4j.Logger
@@ -49,7 +47,6 @@ object Processors {
       |  persistors = 1
       |}
       |hbase {
-      |  zookeeper.connect = "127.0.0.1"
       |  table {
       |    name = "pipeline"
       |    column {
@@ -60,18 +57,10 @@ object Processors {
       |}
     """.
       stripMargin
-  val hbaseCPU = Mockito.mock(classOf[HBaseSinkInterface])
-  val hbaseMEM = Mockito.mock(classOf[HBaseSinkInterface])
-  val repoCPU = new HBaseRepo {
-    def getHBase(table:String, conf:Configuration): HBaseSinkInterface = hbaseCPU
-  }
-  val repoMEM = new HBaseRepo {
-    def getHBase(table:String, conf:Configuration): HBaseSinkInterface = hbaseMEM
-  }
-  val pipelineConfig = KafkaHbasePipeLineConfig(ConfigFactory.parseString(pipelineConfigText))
+  val hbaseCPU = Mockito.mock(classOf[HBaseSink], withSettings().serializable(SerializableMode.ACROSS_CLASSLOADERS))
+  val hbaseMEM = Mockito.mock(classOf[HBaseSink], withSettings().serializable(SerializableMode.ACROSS_CLASSLOADERS))
+  val pipelineConfig = PipeLineConfig(ConfigFactory.parseString(pipelineConfigText))
   val userConfig = UserConfig.empty.withValue(PIPELINE, pipelineConfig)
-  val cpuConfig = userConfig.withValue(HBASESINK,repoCPU)
-  val memoryConfig = userConfig.withValue(HBASESINK,repoMEM)
 
   val data = Array[String](
     """
@@ -153,17 +142,16 @@ class MemoryProcessorSpec extends PropSpec with PropertyChecks with Matchers wit
 
 class CpuPersistorSpec extends PropSpec with PropertyChecks with Matchers with BeforeAndAfter {
   import Processors._
-
+  import HBaseSink._
   val context = MockUtil.mockTaskContext
-  val cpuPersistor = new CpuPersistor(context, cpuConfig)
-
-  property("CpuPersistor should call HBaseSinkInterface.insert(\"1428004406134\", \"metrics\", \"average\", \"{\"dimension\":\"CPU\",\"metric\":\"total\",\"value\":27993997}\"") {
+  val cpuPersistor = new CpuPersistor(context, userConfig.withValue(HBASESINK, hbaseCPU))
+  property("CpuPersistor should call hbaseCPU.insert(\"1428004406134\", \"metrics\", \"average\", \"{\"dimension\":\"CPU\",\"metric\":\"total\",\"value\":27993997}\"") {
     val metrics = getMetrics(data(0))
     val expected = Message(write[Array[Datum]](Array[Datum]()), timeStamps(0))
     cpuPersistor.onStart(StartTime())
     cpuPersistor.onNext(Message(write[Array[Datum]](metrics), timeStamps(0)))
     val metric = """|{"dimension":"CPU","metric":"total","value":27993997}""".stripMargin
-    verify(hbaseCPU).insert("1428004406134", "metrics", "average", metric)
+    verify(cpuPersistor.hbase).insert("1428004406134", "metrics", "average", metric)
   }
 
   after(() => {
@@ -173,17 +161,17 @@ class CpuPersistorSpec extends PropSpec with PropertyChecks with Matchers with B
 
 class MemoryPersistorSpec extends PropSpec with PropertyChecks with Matchers with BeforeAndAfter {
   import Processors._
-
+  import HBaseSink._
   val context = MockUtil.mockTaskContext
-  val memoryPersistor = new MemoryPersistor(context, memoryConfig)
+  val memoryPersistor = new MemoryPersistor(context, userConfig.withValue(HBASESINK, hbaseMEM))
 
-  property("MemoryPersistor should call HBaseSinkInterface.insert(\"1428004406134\", \"metrics\", \"average\", \"{\"dimension\":\"CPU\",\"metric\":\"total\",\"value\":27993997}\"") {
+  property("MemoryPersistor should call hbaseMEM.insert(\"1428004406134\", \"metrics\", \"average\", \"{\"dimension\":\"CPU\",\"metric\":\"total\",\"value\":27993997}\"") {
     val metrics = getMetrics(data(0))
     val expected = Message(write[Array[Datum]](Array[Datum]()), timeStamps(0))
     memoryPersistor.onStart(StartTime())
     memoryPersistor.onNext(Message(write[Array[Datum]](metrics), timeStamps(0)))
     val metric = """|{"dimension":"CPU","metric":"total","value":27993997}""".stripMargin
-    verify(hbaseMEM).insert("1428004406134", "metrics", "average", metric)
+    verify(memoryPersistor.hbase).insert("1428004406134", "metrics", "average", metric)
   }
 
   after(() => {
