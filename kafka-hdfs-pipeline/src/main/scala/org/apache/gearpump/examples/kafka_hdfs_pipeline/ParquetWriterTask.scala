@@ -28,43 +28,31 @@ import scala.util.{Failure, Success, Try}
 
 class ParquetWriterTask(taskContext : TaskContext, config: UserConfig) extends Task(taskContext, config) {
   val outputFileName = taskContext.appName + ".parquet"
-  val absolutePath = Option(config.getString(PARQUET_OUTPUT_DIRECTORY).get + "/" + outputFileName).map(deleteFile(_)).get
+  val absolutePath = Option(getHdfs + config.getString(PARQUET_OUTPUT_DIRECTORY).getOrElse("/parquet") + "/" + outputFileName).map(deleteFile(_)).get
   val outputPath = new Path(absolutePath)
   val parquetWriter = new AvroParquetWriter[SpaceShuttleRecord](outputPath, SpaceShuttleRecord.SCHEMA$)
   def getYarnConf = new YarnConfiguration
   def getFs = FileSystem.get(getYarnConf)
-  def getHdfs = new Path(getFs.getHomeDirectory, "/user/gearpump")
-  var count = 0
+  def getHdfs = new Path(getFs.getHomeDirectory, "gearpump")
 
   private def deleteFile(fileName: String): String = {
-    val file = new java.io.File(fileName.stripPrefix("file://"))
-    file.exists match {
+    val file = new Path(fileName)
+    getFs.exists(file) match {
       case true =>
-        LOG.info(s"deleting $fileName")
-        file.delete match {
-          case true =>
-          case false =>
-            LOG.info("could not delete $name")
-        }
+        getFs.delete(file,false)
       case false =>
-        LOG.info(s"$fileName does not exist")
     }
     fileName
   }
 
   override def onStart(startTime: StartTime): Unit = {
-    LOG.info("ParquetWriter.onStart")
-    deleteFile(config.getString(PARQUET_OUTPUT_DIRECTORY).get + "/" + "." + outputFileName + ".crc")
+    LOG.info(s"ParquetWriter.onStart $absolutePath")
   }
 
   override def onNext(msg: Message): Unit = {
     Try({
       LOG.info("ParquetWriter")
       parquetWriter.write(msg.msg.asInstanceOf[SpaceShuttleRecord])
-      if(count % 50 == 0) {
-        getFs.copyFromLocalFile(false, true, new Path(config.getString(PARQUET_OUTPUT_DIRECTORY).get, outputFileName), getHdfs)
-      }
-      count = count + 1
     }) match {
       case Success(ok) =>
       case Failure(throwable) =>
@@ -72,10 +60,9 @@ class ParquetWriterTask(taskContext : TaskContext, config: UserConfig) extends T
     }
   }
 
-  override def onStop(): Unit ={
+  override def onStop(): Unit = {
     LOG.info("ParquetWriter.onStop")
     parquetWriter.close()
-    getFs.copyFromLocalFile(false, true, new Path(config.getString(PARQUET_OUTPUT_DIRECTORY).get, outputFileName), getHdfs)
   }
 }
 
