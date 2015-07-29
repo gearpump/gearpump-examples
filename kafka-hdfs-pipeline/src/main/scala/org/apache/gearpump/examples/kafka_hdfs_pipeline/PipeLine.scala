@@ -48,7 +48,7 @@ object PipeLine extends App with ArgumentsParser {
     "reader"-> CLIOption[Int]("<kafka data reader number>", required = false, defaultValue = Some(2)),
     "scorer"-> CLIOption[Int]("<scorer number>", required = false, defaultValue = Some(2)),
     "writer"-> CLIOption[Int]("<parquet file writer number>", required = false, defaultValue = Some(1)),
-    "output"-> CLIOption[String]("<output path directory>", required = false, defaultValue = Some("file:///tmp/parquet")),
+    "output"-> CLIOption[String]("<output path directory>", required = false, defaultValue = Some("/parquet")),
     "topic" -> CLIOption[String]("<topic>", required = false, defaultValue = Some("topic-105")),
     "brokers" -> CLIOption[String]("<brokers>", required = false, defaultValue = Some("10.10.10.46:9092,10.10.10.164:9092,10.10.10.236:9092")),
     "zookeepers" -> CLIOption[String]("<zookeepers>", required = false, defaultValue = Some("10.10.10.46:2181,10.10.10.236:2181,10.10.10.164:2181/kafka"))
