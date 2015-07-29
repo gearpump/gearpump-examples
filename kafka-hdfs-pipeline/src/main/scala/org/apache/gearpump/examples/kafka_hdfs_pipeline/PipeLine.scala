@@ -39,7 +39,7 @@ case class SpaceShuttleMessage(id: String, on: String, body: String)
  * We will use this case class directly in ParquetWriterTask.
  */
 @AvroRecord
-case class SpaceShuttleRecord(var timestamp: Double, var vectorClass: Double, var count: Double)
+case class SpaceShuttleRecord(var ts: Long, var anomaly: Double)
 
 object PipeLine extends App with ArgumentsParser {
   private val LOG: Logger = LogUtil.getLogger(getClass)

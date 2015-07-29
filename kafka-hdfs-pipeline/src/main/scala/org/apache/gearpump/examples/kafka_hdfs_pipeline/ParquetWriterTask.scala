@@ -17,20 +17,23 @@
 */
 package org.apache.gearpump.examples.kafka_hdfs_pipeline
 
+import org.apache.avro.Schema
 import org.apache.gearpump.Message
 import org.apache.gearpump.cluster.UserConfig
 import org.apache.gearpump.examples.kafka_hdfs_pipeline.ParquetWriterTask._
 import org.apache.gearpump.streaming.task.{StartTime, Task, TaskContext}
 import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.parquet.avro.AvroParquetWriter
 import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.parquet.avro.AvroParquetWriter
+
 import scala.util.{Failure, Success, Try}
 
 class ParquetWriterTask(taskContext : TaskContext, config: UserConfig) extends Task(taskContext, config) {
   val outputFileName = taskContext.appName + ".parquet"
   val absolutePath = Option(getHdfs + config.getString(PARQUET_OUTPUT_DIRECTORY).getOrElse("/parquet") + "/" + outputFileName).map(deleteFile(_)).get
   val outputPath = new Path(absolutePath)
-  val parquetWriter = new AvroParquetWriter[SpaceShuttleRecord](outputPath, SpaceShuttleRecord.SCHEMA$)
+  var parquetWriter = new AvroParquetWriter[SpaceShuttleRecord](outputPath, SpaceShuttleRecord.SCHEMA$)
+
   def getYarnConf = new YarnConfiguration
   def getFs = FileSystem.get(getYarnConf)
   def getHdfs = new Path(getFs.getHomeDirectory, "gearpump")
@@ -51,7 +54,6 @@ class ParquetWriterTask(taskContext : TaskContext, config: UserConfig) extends T
 
   override def onNext(msg: Message): Unit = {
     Try({
-      LOG.info("ParquetWriter")
       parquetWriter.write(msg.msg.asInstanceOf[SpaceShuttleRecord])
     }) match {
       case Success(ok) =>
@@ -68,4 +70,5 @@ class ParquetWriterTask(taskContext : TaskContext, config: UserConfig) extends T
 
 object ParquetWriterTask {
   val PARQUET_OUTPUT_DIRECTORY = "parquet.output.directory"
+  val PARQUET_WRITER = "parquet.writer"
 }

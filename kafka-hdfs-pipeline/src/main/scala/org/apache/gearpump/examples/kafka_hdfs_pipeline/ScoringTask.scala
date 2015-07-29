@@ -19,18 +19,17 @@ package org.apache.gearpump.examples.kafka_hdfs_pipeline
 
 import akka.io.IO
 import akka.pattern.ask
-
 import org.apache.gearpump.Message
 import org.apache.gearpump.cluster.UserConfig
 import org.apache.gearpump.streaming.task.{Task, TaskContext}
 import org.apache.gearpump.util.Constants
 import spray.can.Http
-import spray.http.{HttpRequest, Uri, HttpResponse, HttpMethods}
-import HttpMethods._
+import spray.http.HttpMethods._
+import spray.http.{HttpRequest, HttpResponse, Uri}
 import upickle._
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future, ExecutionContext}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 /*
@@ -40,7 +39,7 @@ class ScoringTask(taskContext : TaskContext, config: UserConfig) extends Task(ta
   implicit val timeout = Constants.FUTURE_TIMEOUT
   implicit val ec: ExecutionContext = system.dispatcher
 
-  import taskContext.{output, parallelism}
+  import taskContext.output
 
   override def onNext(msg: Message): Unit = {
     Try( {
@@ -48,7 +47,6 @@ class ScoringTask(taskContext : TaskContext, config: UserConfig) extends Task(ta
       val jsonValue = new String(jsonData)
       val spaceShuttleMessage = read[SpaceShuttleMessage](jsonValue)
       val vector = read[Array[Float]](spaceShuttleMessage.body)
-      val score = vector(0)
       val featureVector = vector.drop(1)
       val featureVectorString = featureVector.mkString(",")
       val url = s"http://atk-scoringengine.demo-gotapaas.com/v1/models/DemoModel/score?data=$featureVectorString"
@@ -58,8 +56,7 @@ class ScoringTask(taskContext : TaskContext, config: UserConfig) extends Task(ta
       entity match {
         case 1.0F =>
         case anomaly:Float =>
-          LOG.info(s"found anomaly $anomaly")
-          output(Message(SpaceShuttleRecord(System.currentTimeMillis(), anomaly, 1.0F), System.currentTimeMillis()))
+          output(Message(SpaceShuttleRecord(System.currentTimeMillis, anomaly), System.currentTimeMillis))
       }
     }) match {
       case Success(ok) =>
