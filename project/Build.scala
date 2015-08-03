@@ -23,18 +23,19 @@ object Build extends sbt.Build {
   val akkaVersion = "2.3.6"
   val clouderaVersion = "2.6.0-cdh5.4.2"
   val clouderaHBaseVersion = "1.0.0-cdh5.4.2"
-  val gearpumpVersion = "0.4.1-SNAPSHOT"
+  val gearpumpVersion = "0.4.1"
   val hadoopVersion = "2.6.0"
   val junitVersion = "4.12"
   val kafkaVersion = "0.8.2.1"
-  val sprayVersion = "1.3.2"
+  val mockitoVersion = "1.10.17"
   val parquetVersion = "1.7.0"
+  val sprayVersion = "1.3.2"
+  val upickleVersion = "0.2.8"
   
   val scalaVersionMajor = "scala-2.11"
   val scalaVersionNumber = "2.11.5"
   val scalaTestVersion = "2.2.0"
   val scalaCheckVersion = "1.11.3"
-  val mockitoVersion = "1.10.17"
 
   val commonSettings = Defaults.defaultSettings ++ Seq(jacoco.settings:_*) ++ sonatypeSettings  ++ net.virtualvoid.sbt.graph.Plugin.graphSettings ++
     Seq(
@@ -146,6 +147,7 @@ object Build extends sbt.Build {
         },
         libraryDependencies ++= Seq(
           "io.spray" %%  "spray-can" % sprayVersion,
+          "com.lihaoyi" %% "upickle" % upickleVersion,
           "com.github.intel-hadoop" %% "gearpump-core" % gearpumpVersion % "provided"
             exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
           "com.github.intel-hadoop" %% "gearpump-core" % gearpumpVersion % "test" classifier "tests",
@@ -211,6 +213,7 @@ object Build extends sbt.Build {
         },
         libraryDependencies ++= Seq(
           "io.spray" %%  "spray-can" % sprayVersion,
+          "com.lihaoyi" %% "upickle" % upickleVersion,
           "com.github.intel-hadoop" %% "gearpump-core" % gearpumpVersion % "provided"
             exclude("org.fusesource.leveldbjni", "leveldbjni-all")
             exclude("org.apache.htrace", "htrace-core"),
