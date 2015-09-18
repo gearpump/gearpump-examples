@@ -1,10 +1,10 @@
-package org.apache.gearpump.examples.kafka_hdfs_pipeline
+package io.gearpump.examples.kafka_hdfs_pipeline
 
 import akka.actor.ActorSystem
 import org.apache.avro.Schema
-import org.apache.gearpump.Message
-import org.apache.gearpump.cluster.UserConfig
-import org.apache.gearpump.streaming.MockUtil
+import io.gearpump.Message
+import io.gearpump.cluster.UserConfig
+import io.gearpump.streaming.MockUtil
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.parquet.avro.{AvroParquetReader, AvroParquetWriter}

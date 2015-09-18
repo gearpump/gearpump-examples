@@ -16,20 +16,21 @@
  * limitations under the License.
  */
 
-package org.apache.gearpump.examples.kafka_hbase_pipeline
+package io.gearpump.examples.kafka_hbase_pipeline
 
+import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
-import org.apache.gearpump.cluster.UserConfig
-import org.apache.gearpump.cluster.client.ClientContext
-import org.apache.gearpump.cluster.main.{ArgumentsParser, CLIOption, ParseResult}
-import org.apache.gearpump.streaming.kafka.{KafkaSource, KafkaStorageFactory}
-import org.apache.gearpump.streaming.source.DataSourceProcessor
-import org.apache.gearpump.streaming.{Processor, StreamApplication}
-import org.apache.gearpump.util.Graph._
-import org.apache.gearpump.util.{Graph, LogUtil}
+import io.gearpump.cluster.UserConfig
+import io.gearpump.cluster.client.ClientContext
+import io.gearpump.cluster.main.{ArgumentsParser, CLIOption, ParseResult}
+import io.gearpump.streaming.kafka.{KafkaSource, KafkaStorageFactory}
+import io.gearpump.streaming.source.DataSourceProcessor
+import io.gearpump.streaming.{Processor, StreamApplication}
+import io.gearpump.util.Graph._
+import io.gearpump.util.{AkkaApp, Graph, LogUtil}
 import org.slf4j.Logger
 
-object PipeLine extends App with ArgumentsParser {
+object PipeLine extends AkkaApp with ArgumentsParser {
   private val LOG: Logger = LogUtil.getLogger(getClass)
   val PROCESSORS = "pipeline.processors"
   val PERSISTORS = "pipeline.persistors"
@@ -42,7 +43,8 @@ object PipeLine extends App with ArgumentsParser {
     "zookeepers" -> CLIOption[String]("<zookeepers>", required = false, defaultValue = Some("10.10.10.46:2181,10.10.10.236:2181,10.10.10.164:2181/kafka"))
   )
 
-  def application(config: ParseResult): StreamApplication = {
+  def application(config: ParseResult, system: ActorSystem): StreamApplication = {
+    implicit val actorSystem = system
     import Messages._
     val pipelineString =
       """
@@ -85,10 +87,11 @@ object PipeLine extends App with ArgumentsParser {
     app
   }
 
-  val config = parse(args)
-  val context = ClientContext()
-  implicit val system = context.system
-  val appId = context.submit(application(config))
-  context.close()
+  override def main(akkaConf: Config, args: Array[String]): Unit = {
+    val config = parse(args)
+    val context = ClientContext(akkaConf)
+    val appId = context.submit(application(config, context.system))
+    context.close()
+  }
 
 }

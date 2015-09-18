@@ -20,17 +20,16 @@ object Build extends sbt.Build {
    */
   val travis_deploy = taskKey[Unit]("use this after sbt assembly packArchive, it will rename the package so that travis deploy can find the package.")
   
-  val akkaVersion = "2.3.6"
+  val akkaVersion = "2.3.12"
   val clouderaVersion = "2.6.0-cdh5.4.2"
   val clouderaHBaseVersion = "1.0.0-cdh5.4.2"
-  val gearpumpVersion = "0.4.1"
-  val hadoopVersion = "2.6.0"
+  val gearpumpVersion = "0.6.2-SNAPSHOT"
   val junitVersion = "4.12"
   val kafkaVersion = "0.8.2.1"
   val mockitoVersion = "1.10.17"
   val parquetVersion = "1.7.0"
   val sprayVersion = "1.3.2"
-  val upickleVersion = "0.2.8"
+  val upickleVersion = "0.3.4"
   
   val scalaVersionMajor = "scala-2.11"
   val scalaVersionNumber = "2.11.5"
@@ -121,7 +120,7 @@ object Build extends sbt.Build {
   )
 
   lazy val root = Project(
-    id = "gearpump",
+    id = "gearpump-examples",
     base = file("."),
     settings = commonSettings ++
       Seq(
@@ -151,8 +150,6 @@ object Build extends sbt.Build {
           "com.github.intel-hadoop" %% "gearpump-core" % gearpumpVersion % "provided"
             exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
           "com.github.intel-hadoop" %% "gearpump-core" % gearpumpVersion % "test" classifier "tests",
-          "com.github.intel-hadoop" %% "gearpump-daemon" % gearpumpVersion % "provided"
-            exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
           "com.github.intel-hadoop" %% "gearpump-streaming" % gearpumpVersion % "provided"
             exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
           "com.github.intel-hadoop" %% "gearpump-streaming" % gearpumpVersion % "test" classifier "tests",
@@ -195,7 +192,7 @@ object Build extends sbt.Build {
           "org.mockito" % "mockito-core" % mockitoVersion % "test",
           "junit" % "junit" % junitVersion % "test"
         ) ++ hadoopDependency,
-        mainClass in (Compile, packageBin) := Some("org.apache.gearpump.examples.kafka_hdfs_pipeline.PipeLine"),
+        mainClass in (Compile, packageBin) := Some("io.gearpump.examples.kafka_hdfs_pipeline.PipeLine"),
         target in assembly := baseDirectory.value.getParentFile / "target" / scalaVersionMajor
       )
   )
@@ -218,16 +215,10 @@ object Build extends sbt.Build {
             exclude("org.fusesource.leveldbjni", "leveldbjni-all")
             exclude("org.apache.htrace", "htrace-core"),
           "com.github.intel-hadoop" %% "gearpump-core" % gearpumpVersion % "test" classifier "tests",
-          "com.github.intel-hadoop" %% "gearpump-daemon" % gearpumpVersion % "provided"
-            exclude("org.fusesource.leveldbjni", "leveldbjni-all")
-            exclude("org.apache.htrace", "htrace-core"),
           "com.github.intel-hadoop" %% "gearpump-streaming" % gearpumpVersion % "provided"
             exclude("org.fusesource.leveldbjni", "leveldbjni-all")
             exclude("org.apache.htrace", "htrace-core"),
           "com.github.intel-hadoop" %% "gearpump-streaming" % gearpumpVersion % "test" classifier "tests",
-          "com.github.intel-hadoop" %% "gearpump-experiments-dsl" % gearpumpVersion % "provided"
-            exclude("org.fusesource.leveldbjni", "leveldbjni-all")
-            exclude("org.apache.htrace", "htrace-core"),
           "com.github.intel-hadoop" %% "gearpump-external-kafka" % gearpumpVersion
             exclude("org.fusesource.leveldbjni", "leveldbjni-all")
             exclude("org.apache.htrace", "htrace-core"),
@@ -270,7 +261,7 @@ object Build extends sbt.Build {
           "org.mockito" % "mockito-core" % mockitoVersion % "test",
           "junit" % "junit" % junitVersion % "test"
         ) ++ hadoopDependency,
-        mainClass in (Compile, packageBin) := Some("org.apache.gearpump.examples.kafka_hbase_pipeline.PipeLine"),
+        mainClass in (Compile, packageBin) := Some("io.gearpump.examples.kafka_hbase_pipeline.PipeLine"),
         target in assembly := baseDirectory.value.getParentFile / "target" / scalaVersionMajor
       )
   )
