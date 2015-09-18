@@ -15,13 +15,13 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package org.apache.gearpump.examples.kafka_hdfs_pipeline
+package io.gearpump.examples.kafka_hdfs_pipeline
 
 import org.apache.avro.Schema
-import org.apache.gearpump.Message
-import org.apache.gearpump.cluster.UserConfig
-import org.apache.gearpump.examples.kafka_hdfs_pipeline.ParquetWriterTask._
-import org.apache.gearpump.streaming.task.{StartTime, Task, TaskContext}
+import io.gearpump.Message
+import io.gearpump.cluster.UserConfig
+import io.gearpump.examples.kafka_hdfs_pipeline.ParquetWriterTask._
+import io.gearpump.streaming.task.{StartTime, Task, TaskContext}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.parquet.avro.AvroParquetWriter

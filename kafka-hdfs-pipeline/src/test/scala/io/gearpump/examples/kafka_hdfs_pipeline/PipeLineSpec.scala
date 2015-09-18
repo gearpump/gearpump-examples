@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.gearpump.examples.kafka_hdfs_pipeline
+package io.gearpump.examples.kafka_hdfs_pipeline
 
 import akka.actor.ActorSystem
-import org.apache.gearpump._
-import org.apache.gearpump.cluster.UserConfig
-import org.apache.gearpump.streaming.task.{StartTime, Task, TaskContext}
-import org.apache.gearpump.streaming.transaction.api.TimeReplayableSource
-import org.apache.gearpump.util.LogUtil
+import io.gearpump._
+import io.gearpump.cluster.UserConfig
+import io.gearpump.streaming.task.{StartTime, Task, TaskContext}
+import io.gearpump.streaming.transaction.api.TimeReplayableSource
+import io.gearpump.util.LogUtil
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{BeforeAndAfterAll, Matchers, PropSpec}
 import org.slf4j.Logger

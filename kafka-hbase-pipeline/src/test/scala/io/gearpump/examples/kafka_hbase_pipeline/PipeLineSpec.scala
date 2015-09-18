@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.gearpump.examples.kafka_hbase_pipeline
+package io.gearpump.examples.kafka_hbase_pipeline
 
 //Todo
 class PipeLineSpec {

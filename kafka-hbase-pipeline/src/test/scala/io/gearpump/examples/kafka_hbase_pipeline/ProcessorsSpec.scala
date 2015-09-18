@@ -15,23 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.gearpump.examples.kafka_hbase_pipeline
+package io.gearpump.examples.kafka_hbase_pipeline
 
 import com.typesafe.config.ConfigFactory
-import org.apache.gearpump.Message
-import org.apache.gearpump.cluster.UserConfig
-import org.apache.gearpump.examples.kafka_hbase_pipeline.Messages.{Body, Datum, Envelope, _}
-import org.apache.gearpump.external.hbase.HBaseSink
-import org.apache.gearpump.streaming.MockUtil
-import org.apache.gearpump.streaming.task.StartTime
-import org.apache.gearpump.util.LogUtil
+import io.gearpump.Message
+import io.gearpump.cluster.UserConfig
+import io.gearpump.examples.kafka_hbase_pipeline.Messages.{Body, Datum, Envelope, _}
+import io.gearpump.external.hbase.HBaseSink
+import io.gearpump.streaming.MockUtil
+import io.gearpump.streaming.task.StartTime
+import io.gearpump.util.LogUtil
 import org.mockito.Mockito
 import org.mockito.Mockito._
 import org.mockito.mock.SerializableMode
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{BeforeAndAfter, Matchers, PropSpec}
 import org.slf4j.Logger
-import upickle._
+import upickle.default._
 
 object Processors {
   val LOG: Logger = LogUtil.getLogger(getClass)

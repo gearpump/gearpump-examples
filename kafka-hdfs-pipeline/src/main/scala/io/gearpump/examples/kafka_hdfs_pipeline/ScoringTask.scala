@@ -15,18 +15,18 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package org.apache.gearpump.examples.kafka_hdfs_pipeline
+package io.gearpump.examples.kafka_hdfs_pipeline
 
 import akka.io.IO
 import akka.pattern.ask
-import org.apache.gearpump.Message
-import org.apache.gearpump.cluster.UserConfig
-import org.apache.gearpump.streaming.task.{Task, TaskContext}
-import org.apache.gearpump.util.Constants
+import io.gearpump.Message
+import io.gearpump.cluster.UserConfig
+import io.gearpump.streaming.task.{Task, TaskContext}
+import io.gearpump.util.Constants
 import spray.can.Http
 import spray.http.HttpMethods._
 import spray.http.{HttpRequest, HttpResponse, Uri}
-import upickle._
+import upickle.default._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}

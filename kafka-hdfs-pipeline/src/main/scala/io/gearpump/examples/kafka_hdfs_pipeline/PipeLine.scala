@@ -15,21 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.gearpump.examples.kafka_hdfs_pipeline
+package io.gearpump.examples.kafka_hdfs_pipeline
 
+import akka.actor.ActorSystem
 import com.julianpeeters.avro.annotations._
-import org.apache.gearpump.cluster.UserConfig
-import org.apache.gearpump.cluster.client.ClientContext
-import org.apache.gearpump.cluster.main.{ArgumentsParser, CLIOption, ParseResult}
-import org.apache.gearpump.partitioner.ShufflePartitioner
-import org.apache.gearpump.streaming.kafka.{KafkaSource, KafkaStorageFactory}
-import org.apache.gearpump.streaming.source.DataSourceProcessor
-import org.apache.gearpump.streaming.{Processor, StreamApplication}
-import org.apache.gearpump.util.Graph._
-import org.apache.gearpump.util.{Graph, LogUtil}
+import io.gearpump.cluster.UserConfig
+import io.gearpump.cluster.client.ClientContext
+import io.gearpump.cluster.main.{ArgumentsParser, CLIOption, ParseResult}
+import io.gearpump.partitioner.ShufflePartitioner
+import io.gearpump.streaming.kafka.{KafkaSource, KafkaStorageFactory}
+import io.gearpump.streaming.source.DataSourceProcessor
+import io.gearpump.streaming.{Processor, StreamApplication}
+import io.gearpump.util.Graph._
+import io.gearpump.util.{AkkaApp, Graph, LogUtil}
 import org.slf4j.Logger
-
-import scala.util.Try
 
 case class SpaceShuttleMessage(id: String, on: String, body: String)
 
@@ -41,7 +40,7 @@ case class SpaceShuttleMessage(id: String, on: String, body: String)
 @AvroRecord
 case class SpaceShuttleRecord(var ts: Long, var anomaly: Double)
 
-object PipeLine extends App with ArgumentsParser {
+object PipeLine extends AkkaApp with ArgumentsParser {
   private val LOG: Logger = LogUtil.getLogger(getClass)
 
   override val options: Array[(String, CLIOption[Any])] = Array(
@@ -54,10 +53,8 @@ object PipeLine extends App with ArgumentsParser {
     "zookeepers" -> CLIOption[String]("<zookeepers>", required = false, defaultValue = Some("10.10.10.46:2181,10.10.10.236:2181,10.10.10.164:2181/kafka"))
   )
 
-  val context = ClientContext()
-  implicit val system = context.system
-
-  def application(context: ClientContext, config: ParseResult): Unit = {
+  def application(config: ParseResult, system: ActorSystem): StreamApplication = {
+    implicit val actorSystem = system
     val readerNum = config.getInt("reader")
     val scorerNum = config.getInt("scorer")
     val writerNum = config.getInt("writer")
@@ -76,14 +73,13 @@ object PipeLine extends App with ArgumentsParser {
 
     val dag = Graph(reader ~ partitioner ~> scorer ~ partitioner ~> writer)
     val app = StreamApplication("KafkaHdfsPipeLine", dag, appConfig)
-
-    context.submit(app)
-    context.close()
+    app
   }
 
-  Try({
-    application(context, parse(args))
-  }).failed.foreach(throwable => {
-    LOG.error("Application Failed", throwable)
-  })
+  override def main(akkaConf: Config, args: Array[String]): Unit = {
+    val config = parse(args)
+    val context = ClientContext(akkaConf)
+    val appId = context.submit(application(config, context.system))
+    context.close()
+  }
 }

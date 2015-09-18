@@ -16,18 +16,18 @@
  * limitations under the License.
  */
 
-package org.apache.gearpump.examples.kafka_hbase_pipeline
+package io.gearpump.examples.kafka_hbase_pipeline
 
 import com.typesafe.config.Config
-import org.apache.gearpump._
-import org.apache.gearpump.cluster.UserConfig
-import org.apache.gearpump.examples.kafka_hbase_pipeline.Messages._
-import org.apache.gearpump.external.hbase.HBaseSink
-import org.apache.gearpump.external.hbase.HBaseSink._
-import org.apache.gearpump.streaming.task.{StartTime, Task, TaskContext}
-import org.apache.gearpump.util.LogUtil
+import io.gearpump._
+import io.gearpump.cluster.UserConfig
+import io.gearpump.examples.kafka_hbase_pipeline.Messages._
+import io.gearpump.external.hbase.HBaseSink
+import io.gearpump.external.hbase.HBaseSink._
+import io.gearpump.streaming.task.{StartTime, Task, TaskContext}
+import io.gearpump.util.LogUtil
 import org.slf4j.Logger
-import upickle._
+import upickle.default._
 
 import scala.language.implicitConversions
 import scala.util.Try
