@@ -21,6 +21,7 @@ object Build extends sbt.Build {
   val travis_deploy = taskKey[Unit]("use this after sbt assembly packArchive, it will rename the package so that travis deploy can find the package.")
   
   val akkaVersion = "2.3.12"
+  val atkVersion = "0.4.3-master-SNAPSHOT"
   val clouderaVersion = "2.6.0-cdh5.4.2"
   val clouderaHBaseVersion = "1.0.0-cdh5.4.2"
   val gearpumpVersion = "0.6.2-SNAPSHOT"
@@ -48,7 +49,8 @@ object Build extends sbt.Build {
           "bintray/non" at "http://dl.bintray.com/non/maven",
           "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos",
           "clockfly" at "http://dl.bintray.com/clockfly/maven",
-          "local maven" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
+          "tap" at "https://maven.trustedanalytics.org/content/repositories/snapshots",
+          "localmaven" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
         ),
         addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0-M5" cross CrossVersion.full)
     ) ++
@@ -133,7 +135,7 @@ object Build extends sbt.Build {
           new File(packagePath).renameTo(new File(target))
         }
       )
-  ).aggregate(kafka_hdfs_pipeline, kafka_hbase_pipeline, tap_pipeline)
+  ).aggregate(kafka_hdfs_pipeline, kafka_hbase_pipeline, atk_pipeline, tap_pipeline)
 
   lazy val kafka_hdfs_pipeline = Project(
     id = "gearpump-kafka-hdfs-pipeline",
@@ -264,6 +266,73 @@ object Build extends sbt.Build {
           "junit" % "junit" % junitVersion % "test"
         ) ++ hadoopDependency,
         mainClass in (Compile, packageBin) := Some("io.gearpump.examples.kafka_hbase_pipeline.PipeLine"),
+        target in assembly := baseDirectory.value.getParentFile / "target" / scalaVersionMajor
+      )
+  )
+
+  lazy val atk_pipeline = Project(
+    id = "gearpump-atk-pipeline",
+    base = file("atk-pipeline"),
+    settings = commonSettings ++ myAssemblySettings ++
+      Seq(
+        mergeStrategy in assembly := {
+          case PathList("META-INF", "maven","org.slf4j","slf4j-api", ps) if ps.startsWith("pom") => MergeStrategy.discard
+          case x =>
+            val oldStrategy = (mergeStrategy in assembly).value
+            oldStrategy(x)
+        },
+        libraryDependencies ++= Seq(
+          "com.lihaoyi" %% "upickle" % upickleVersion,
+          "com.github.intel-hadoop" %% "gearpump-core" % gearpumpVersion % "provided"
+            exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
+          "com.github.intel-hadoop" %% "gearpump-core" % gearpumpVersion % "test" classifier "tests",
+          "com.github.intel-hadoop" %% "gearpump-streaming" % gearpumpVersion % "provided"
+            exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
+          "com.github.intel-hadoop" %% "gearpump-streaming" % gearpumpVersion % "test" classifier "tests",
+          "com.github.intel-hadoop" %% "gearpump-external-kafka" % gearpumpVersion
+            exclude("org.fusesource.leveldbjni", "leveldbjni-all"),
+          "org.trustedanalytics.gearpump" % "config-tools" % gearpumpTapVersion
+            exclude("org.fusesource.leveldbjni", "leveldbjni-all")
+            exclude("org.apache.htrace", "htrace-core")
+            exclude("commons-beanutils", "commons-beanutils-core")
+            exclude("commons-beanutils", "commons-beanutils"),
+          "org.trustedanalytics.atk" % "model-publish-format" % atkVersion,
+          "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2",
+          "com.julianpeeters" % "avro-scala-macro-annotations_2.11" % "0.9.0",
+          "org.apache.hadoop" % "hadoop-hdfs" % clouderaVersion
+            exclude("org.fusesource.leveldbjni", "leveldbjni-all")
+            exclude("org.mortbay.jetty", "jetty-util")
+            exclude("org.mortbay.jetty", "jetty")
+            exclude("org.apache.htrace", "htrace-core")
+            exclude("tomcat", "jasper-runtime"),
+          "org.apache.hadoop" % "hadoop-yarn-api" % clouderaVersion
+            exclude("org.fusesource.leveldbjni", "leveldbjni-all")
+            exclude("com.google.guava", "guava")
+            exclude("com.google.protobuf", "protobuf-java")
+            exclude("commons-lang", "commons-lang")
+            exclude("org.apache.htrace", "htrace-core")
+            exclude("commons-logging", "commons-logging")
+            exclude("org.apache.hadoop", "hadoop-annotations"),
+          "org.apache.hadoop" % "hadoop-yarn-client" % clouderaVersion
+            exclude("org.fusesource.leveldbjni", "leveldbjni-all")
+            exclude("com.google.guava", "guava")
+            exclude("com.sun.jersey", "jersey-client")
+            exclude("commons-cli", "commons-cli")
+            exclude("commons-lang", "commons-lang")
+            exclude("commons-logging", "commons-logging")
+            exclude("org.apache.htrace", "htrace-core")
+            exclude("log4j", "log4j")
+            exclude("org.apache.hadoop", "hadoop-annotations")
+            exclude("org.mortbay.jetty", "jetty-util")
+            exclude("org.apache.hadoop", "hadoop-yarn-api")
+            exclude("org.apache.hadoop", "hadoop-yarn-common"),
+          "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
+          "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+          "org.scalacheck" %% "scalacheck" % scalaCheckVersion % "test",
+          "org.mockito" % "mockito-core" % mockitoVersion % "test",
+          "junit" % "junit" % junitVersion % "test"
+        ) ++ hadoopDependency,
+        mainClass in (Compile, packageBin) := Some("io.gearpump.examples.atk_pipeline.PipeLine"),
         target in assembly := baseDirectory.value.getParentFile / "target" / scalaVersionMajor
       )
   )

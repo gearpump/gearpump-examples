@@ -15,66 +15,61 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gearpump.examples.kafka_hdfs_pipeline
+
+package io.gearpump.examples.atk_pipeline
 
 import akka.actor.ActorSystem
-import com.julianpeeters.avro.annotations._
+import com.typesafe.config.{ConfigRenderOptions, ConfigFactory}
 import io.gearpump.cluster.UserConfig
 import io.gearpump.cluster.client.ClientContext
 import io.gearpump.cluster.main.{ArgumentsParser, CLIOption, ParseResult}
-import io.gearpump.partitioner.ShufflePartitioner
+import io.gearpump.streaming.dsl.CollectionDataSource
 import io.gearpump.streaming.dsl.plan.OpTranslator.{HandlerTask, SourceTask}
 import io.gearpump.streaming.kafka.{KafkaSource, KafkaStorageFactory}
 import io.gearpump.streaming.source.DataSource
 import io.gearpump.streaming.{Processor, StreamApplication}
+import io.gearpump.tap.TapJsonConfig
 import io.gearpump.util.Graph._
 import io.gearpump.util.{AkkaApp, Graph, LogUtil}
 import org.slf4j.Logger
 
-case class SpaceShuttleMessage(id: String, on: String, body: String)
-
-/**
- * This annotation will translate the case class into a Avro type class.
- * Fields must be vars in order to be compatible with the SpecificRecord API.
- * We will use this case class directly in ParquetWriterTask.
- */
-@AvroRecord
-case class SpaceShuttleRecord(var ts: Long, var anomaly: Double)
 
 object PipeLine extends AkkaApp with ArgumentsParser {
   private val LOG: Logger = LogUtil.getLogger(getClass)
 
   override val options: Array[(String, CLIOption[Any])] = Array(
-    "reader"-> CLIOption[Int]("<kafka data reader number>", required = false, defaultValue = Some(2)),
-    "scorer"-> CLIOption[Int]("<scorer number>", required = false, defaultValue = Some(2)),
-    "writer"-> CLIOption[Int]("<parquet file writer number>", required = false, defaultValue = Some(1)),
-    "output"-> CLIOption[String]("<output path directory>", required = false, defaultValue = Some("/parquet")),
-    "topic" -> CLIOption[String]("<topic>", required = false, defaultValue = Some("topic-105")),
-    "brokers" -> CLIOption[String]("<brokers>", required = false, defaultValue = Some("10.10.10.46:9092,10.10.10.164:9092,10.10.10.236:9092")),
-    "zookeepers" -> CLIOption[String]("<zookeepers>", required = false, defaultValue = Some("10.10.10.46:2181,10.10.10.236:2181,10.10.10.164:2181/kafka"))
+    "models"-> CLIOption[String]("<models found in hdfs>", required = false, defaultValue = Some("/user/gearpump/atk/kmeans.tar")),
+    "randomforest"-> CLIOption[String]("<tar file location in hdfs>", required = false, defaultValue = Some("/user/gearpump/atk/randomforest.tar")),
+    "hbase"-> CLIOption[String]("<hbase instance>", required = false, defaultValue = Some("hbase")),
+    "kafka"-> CLIOption[String]("<kafka instance>", required = false, defaultValue = Some("kafka")),
+    "zookeeper"-> CLIOption[String]("<zookeeper instance>", required = false, defaultValue = Some("zookeeper")),
+    "table"-> CLIOption[String]("<hbase table>", required = false, defaultValue = Some("gp_tap_table")),
+    "topic"-> CLIOption[String]("<kafka topic>", required = false, defaultValue = Some("gp_tap_topic"))
   )
 
   def application(config: ParseResult, system: ActorSystem): StreamApplication = {
+    import ATKTask._
     import SourceTask._
     implicit val actorSystem = system
-    val readerNum = config.getInt("reader")
-    val scorerNum = config.getInt("scorer")
-    val writerNum = config.getInt("writer")
-    val outputPath = config.getString("output")
+    val TAR = "trustedanalytics.scoring-engine.archive-tar"
+    val appConfig = UserConfig.empty.withString(TAR, config.getString("tar"))
+    val conf = ConfigFactory.load
+    val services = conf.root.withOnlyKey("VCAP_SERVICES").render(ConfigRenderOptions.defaults().setJson(true))
+    val tjc = new TapJsonConfig(services)
+    val hbaseconfig = tjc.getHBase(config.getString("hbase"))
+    val kafkaconfig = tjc.getKafkaConfig(config.getString("kafka"))
+    val zookeeperconfig = tjc.getZookeeperConfig(config.getString("zookeeper"))
     val topic = config.getString("topic")
-    val brokers = config.getString("brokers")
-    val zookeepers = config.getString("zookeepers")
-    val appConfig = UserConfig.empty.withString(ParquetWriterTask.PARQUET_OUTPUT_DIRECTORY, outputPath)
+    val table = config.getString("table")
+    val zookeepers = zookeeperconfig.get("zookeepers")
+    val brokers = kafkaconfig.get("brokers")
     val offsetStorageFactory = new KafkaStorageFactory(zookeepers, brokers)
-
-    val partitioner = new ShufflePartitioner()
     val source = new KafkaSource(topic, zookeepers, offsetStorageFactory)
-    val reader = Processor[HandlerTask,DataSource](source, readerNum, "KafkaSource", UserConfig.empty)
-    val scorer = Processor[ScoringTask](scorerNum)
-    val writer = Processor[ParquetWriterTask](writerNum)
-
-    val dag = Graph(reader ~ partitioner ~> scorer ~ partitioner ~> writer)
-    val app = StreamApplication("KafkaHdfsPipeLine", dag, appConfig)
+    val kafka = Processor[HandlerTask,DataSource](source, 1, "KafkaSource", UserConfig.empty)
+    val kmeans = Processor[HandlerTask,Scoring](new KMeans, 1, "ATK", appConfig)
+    val app = StreamApplication("ATKPipeline", Graph(
+      kafka ~> kmeans
+    ), UserConfig.empty)
     app
   }
 
@@ -84,4 +79,6 @@ object PipeLine extends AkkaApp with ArgumentsParser {
     val appId = context.submit(application(config, context.system))
     context.close()
   }
+
 }
+
