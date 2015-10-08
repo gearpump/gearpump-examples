@@ -64,7 +64,7 @@ object PipeLine extends AkkaApp with ArgumentsParser {
         |  }
         |}
       """.stripMargin
-    val pipelineConfig = PipeLineConfig(ConfigFactory.parseFile(new java.io.File(pipelineString)))
+    val pipelineConfig = PipeLineConfig(ConfigFactory.parseString(pipelineString))
     val processors = config.getInt("processors")
     val persistors = config.getInt("persistors")
     val topic = config.getString("topic")
