@@ -24,10 +24,11 @@ import io.gearpump.cluster.UserConfig
 import io.gearpump.cluster.client.ClientContext
 import io.gearpump.cluster.main.{ArgumentsParser, CLIOption, ParseResult}
 import io.gearpump.external.hbase.HBaseSink
-import io.gearpump.streaming.StreamApplication
+import io.gearpump.streaming.dsl.plan.OpTranslator.HandlerTask
 import io.gearpump.streaming.kafka.{KafkaSource, KafkaStorageFactory}
-import io.gearpump.streaming.sink.DataSinkProcessor
-import io.gearpump.streaming.source.DataSourceProcessor
+import io.gearpump.streaming.sink.DataSink
+import io.gearpump.streaming.source.DataSource
+import io.gearpump.streaming.{Processor, StreamApplication}
 import io.gearpump.tap.TapJsonConfig
 import io.gearpump.util.Graph._
 import io.gearpump.util.{AkkaApp, Graph, LogUtil}
@@ -39,6 +40,7 @@ object PipeLine extends AkkaApp with ArgumentsParser {
   override val options: Array[(String, CLIOption[Any])] = Array(
     "hbase"-> CLIOption[String]("<hbase instance>", required = false, defaultValue = Some("hbase")),
     "kafka"-> CLIOption[String]("<kafka instance>", required = false, defaultValue = Some("kafka")),
+    "zookeeper"-> CLIOption[String]("<zookeeper instance>", required = false, defaultValue = Some("zookeeper")),
     "table"-> CLIOption[String]("<hbase table>", required = false, defaultValue = Some("gp_tap_table")),
     "topic"-> CLIOption[String]("<kafka topic>", required = false, defaultValue = Some("gp_tap_topic"))
   )
@@ -50,17 +52,16 @@ object PipeLine extends AkkaApp with ArgumentsParser {
     val services = conf.root.withOnlyKey("VCAP_SERVICES").render(ConfigRenderOptions.defaults().setJson(true))
     val tjc = new TapJsonConfig(services)
     val hbaseconfig = tjc.getHBase(config.getString("hbase"))
-    //val kafkaconfig = tjc.getKafka(config.getString("hbase"))
-    val kafkaconfig = Map(
-      "zookeepers" -> "10.10.10.46:9092,10.10.10.164:9092,10.10.10.236:9092",
-      "brokers" -> "10.10.10.46:2181,10.10.10.236:2181,10.10.10.164:2181/kafka"
-    )
+    val kafkaconfig = tjc.getKafkaConfig(config.getString("kafka"))
+    val zookeeperconfig = tjc.getZookeeperConfig(config.getString("zookeeper"))
     val topic = config.getString("topic")
     val table = config.getString("table")
-    val zookeepers = kafkaconfig.get("zookeepers").get
-    val brokers = kafkaconfig.get("brokers").get
-    val source = DataSourceProcessor(new KafkaSource(topic, zookeepers,new KafkaStorageFactory(zookeepers, brokers)), 1)
-    val sink = DataSinkProcessor(new HBaseSink(table, hbaseconfig), 1)
+    val zookeepers = zookeeperconfig.get("zookeepers")
+    val brokers = kafkaconfig.get("brokers")
+    val offsetStorageFactory = new KafkaStorageFactory(zookeepers, brokers)
+    val source = new KafkaSource(topic, zookeepers, offsetStorageFactory)
+    val kafka = Processor[HandlerTask,DataSource](source, 1, "KafkaSource", UserConfig.empty)
+    val sink = Processor[HandlerTask,DataSink](new HBaseSink(table, hbaseconfig), 1, "HBaseSink", UserConfig.empty)
     val app = StreamApplication("TAPPipeline", Graph(
       source ~> sink
     ), UserConfig.empty)

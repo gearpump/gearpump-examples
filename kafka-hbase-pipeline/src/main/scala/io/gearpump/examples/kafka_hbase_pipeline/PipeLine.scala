@@ -23,8 +23,9 @@ import com.typesafe.config.ConfigFactory
 import io.gearpump.cluster.UserConfig
 import io.gearpump.cluster.client.ClientContext
 import io.gearpump.cluster.main.{ArgumentsParser, CLIOption, ParseResult}
+import io.gearpump.streaming.dsl.plan.OpTranslator.{HandlerTask, SourceTask}
 import io.gearpump.streaming.kafka.{KafkaSource, KafkaStorageFactory}
-import io.gearpump.streaming.source.DataSourceProcessor
+import io.gearpump.streaming.source.DataSource
 import io.gearpump.streaming.{Processor, StreamApplication}
 import io.gearpump.util.Graph._
 import io.gearpump.util.{AkkaApp, Graph, LogUtil}
@@ -44,6 +45,7 @@ object PipeLine extends AkkaApp with ArgumentsParser {
   )
 
   def application(config: ParseResult, system: ActorSystem): StreamApplication = {
+    import SourceTask._
     implicit val actorSystem = system
     import Messages._
     val pipelineString =
@@ -75,7 +77,7 @@ object PipeLine extends AkkaApp with ArgumentsParser {
 
     val offsetStorageFactory = new KafkaStorageFactory(zookeepers, brokers)
     val source = new KafkaSource(topic, zookeepers, offsetStorageFactory)
-    val kafka = DataSourceProcessor(source, 1)
+    val kafka = Processor[HandlerTask,DataSource](source, 1, "KafkaSource", UserConfig.empty)
     val cpuProcessor = Processor[CpuProcessor](processors, "CpuProcessor")
     val memoryProcessor = Processor[MemoryProcessor](processors, "MemoryProcessor")
     val cpuPersistor = Processor[CpuPersistor](persistors, "CpuPersistor")
