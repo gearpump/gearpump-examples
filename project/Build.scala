@@ -23,7 +23,7 @@ object Build extends sbt.Build {
   val akkaVersion = "2.3.12"
   val clouderaVersion = "2.6.0-cdh5.4.2"
   val clouderaHBaseVersion = "1.0.0-cdh5.4.2"
-  val gearpumpVersion = "0.6.2-SNAPSHOT"
+  val gearpumpVersion = "0.7.5"
   val gearpumpTapVersion = "0.0.1-SNAPSHOT"
   val junitVersion = "4.12"
   val kafkaVersion = "0.8.2.1"
